@@ -24,6 +24,10 @@ class BencodeParserSpec extends UnitSpec {
     assertParse("4:spam", "spam", string)
   }
 
+  it should "detect a string with new line and control characters" in {
+    assertParse("5:a\n\u0012\u001Ae", "a\n\u0012\u001Ae", string)
+  }
+
   it should "not allow an empty string" in {
     assertParserFailure("0:", string)
   }

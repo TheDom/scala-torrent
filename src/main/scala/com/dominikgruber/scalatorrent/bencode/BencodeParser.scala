@@ -22,7 +22,7 @@ object BencodeParser extends RegexParsers {
       val source = in.source
       val offset = in.offset
       val start = handleWhiteSpace(source, offset)
-      """(\d+):(.+)""".r findPrefixMatchOf source.subSequence(start, source.length) match {
+      """(\d+):([\s\S]+)""".r findPrefixMatchOf source.subSequence(start, source.length) match {
         case Some(matched) =>
           val length = matched.group(1).toInt
           if (length <= matched.group(2).length)
