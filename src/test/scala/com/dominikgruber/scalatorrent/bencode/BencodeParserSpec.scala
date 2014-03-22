@@ -94,8 +94,8 @@ class BencodeParserSpec extends UnitSpec {
     assertParse(in, out, list)
   }
 
-  it should "allow an empty list" in {
-    assertParse("le", List(), list)
+  it should "not allow an empty list" in {
+    assertParserFailure("le", list)
   }
 
   it should "detect a dictionary (farm example)" in {
@@ -120,8 +120,8 @@ class BencodeParserSpec extends UnitSpec {
     assertParse(in, out, dictionary)
   }
 
-  it should "allow an empty dictionary" in {
-    assertParse("de", Map(), dictionary)
+  it should "not allow an empty dictionary" in {
+    assertParserFailure("de", dictionary)
   }
 
   it should "fail if only a dictionary key is given" in {

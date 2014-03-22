@@ -1,6 +1,5 @@
 package com.dominikgruber.scalatorrent.bencode
 
-import scala.util.matching.Regex
 import scala.util.parsing.combinator._
 
 /**
@@ -56,7 +55,7 @@ object BencodeParser extends RegexParsers {
    * contain any bencoded type, including integers, strings, dictionaries, and
    * even lists within other lists.
    */
-  def list: Parser[List[Any]] = "l" ~> rep(bencodeElem) <~ "e"
+  def list: Parser[List[Any]] = "l" ~> rep1(bencodeElem) <~ "e"
 
   /**
    * Official specification:
@@ -71,7 +70,7 @@ object BencodeParser extends RegexParsers {
    * @todo Ensure keys appear in sorted order
    */
   def dictionary: Parser[Map[String,Any]] =
-    "d" ~> rep(string ~ bencodeElem) <~ "e" ^^ (_.map(x => (x._1, x._2)).toMap)
+    "d" ~> rep1(string ~ bencodeElem) <~ "e" ^^ (_.map(x => (x._1, x._2)).toMap)
 
   def bencodeElem = string | integer | list | dictionary
 
