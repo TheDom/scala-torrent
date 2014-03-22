@@ -1,7 +1,7 @@
 scala-torrent
 =============
 
-As a personal challenge I decided to create a [BitTorrent](http://www.bittorrent.com) client in [Scala](http://www.scala-lang.org). I chose this topic for two primary reasons:
+As a personal challenge I decided to create a [BitTorrent](http://www.bittorrent.com) client in [Scala](http://www.scala-lang.org). I chose this subject for two primary reasons:
 
 * To explore new topics and problems aside from the iOS and web development projects I'm doing.
 * To gain more experience with Scala and especially [Akka](http://akka.io), as the subject should be a good fit for the [actor model](http://en.wikipedia.org/wiki/Actor_model).
