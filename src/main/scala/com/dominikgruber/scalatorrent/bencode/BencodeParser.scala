@@ -3,7 +3,7 @@ package com.dominikgruber.scalatorrent.bencode
 import scala.util.parsing.combinator._
 
 /**
- * Official specification:
+ * Descriptions taken from the specification:
  * https://wiki.theory.org/BitTorrentSpecification#Bencoding
  */
 object BencodeParser extends RegexParsers {
@@ -11,7 +11,6 @@ object BencodeParser extends RegexParsers {
   override def skipWhitespace = false
 
   /**
-   * Official specification:
    * Bencoded strings are encoded as follows:
    * <string length encoded in base ten ASCII>:<string data>, or key:value
    * Note that there is no constant beginning delimiter, and no ending
@@ -39,7 +38,6 @@ object BencodeParser extends RegexParsers {
   }
 
   /**
-   * Official specification:
    * Integers are encoded as follows: i<integer encoded in base ten ASCII>e
    * The initial i and trailing e are beginning and ending delimiters. You can
    * have negative numbers such as i-3e. Only the significant digits should be
@@ -49,7 +47,6 @@ object BencodeParser extends RegexParsers {
   def integer: Parser[Int] = "i" ~> """(0|\-?[1-9]\d*)""".r <~ "e" ^^ (_.toInt)
 
   /**
-   * Official specification:
    * Lists are encoded as follows: l<bencoded values>e
    * The initial l and trailing e are beginning and ending delimiters. Lists may
    * contain any bencoded type, including integers, strings, dictionaries, and
@@ -58,7 +55,6 @@ object BencodeParser extends RegexParsers {
   def list: Parser[List[Any]] = "l" ~> rep1(bencodeElem) <~ "e"
 
   /**
-   * Official specification:
    * Dictionaries are encoded as follows: d<bencoded string><bencoded element>e
    * The initial d and trailing e are the beginning and ending delimiters. Note
    * that the keys must be bencoded strings. The values may be any bencoded
