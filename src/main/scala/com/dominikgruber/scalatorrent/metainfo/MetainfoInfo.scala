@@ -1,5 +1,8 @@
 package com.dominikgruber.scalatorrent.metainfo
 
+import com.dominikgruber.scalatorrent.bencode.BencodeEncoder
+import scala.collection.mutable
+
 /**
  * Descriptions taken from the specification:
  * https://wiki.theory.org/BitTorrentSpecification#Metainfo_File_Structure
@@ -24,14 +27,44 @@ sealed trait MetainfoInfo
    * client may obtain peer from other means, e.g. PEX peer exchange, dht.
    * Here, "private" may be read as "no external peer source".
    */
-  def privateTorrent: Boolean
+  def privateTorrent: Option[Boolean]
+
+  /**
+   * Convenience Helper
+   * @return Is this a private torrent?
+   */
+  def isPrivateTorrent: Boolean = privateTorrent.getOrElse(false)
+
+  /**
+   * Convert the content to a map conforming to the .torrent file standard
+   */
+  def toMap: Map[String,Any]
+
+  /**
+   * Bencoded string conforming to the .torrent file standard
+   */
+  def bencodedString: Option[String] =
+    BencodeEncoder(toMap)
+
+  /**
+   * SHA1 value of the bencoded string
+   */
+  def SHA1: Option[String] = {
+    bencodedString match {
+      case Some(s: String) => {
+        val md = java.security.MessageDigest.getInstance("SHA-1")
+        Some(md.digest(s.getBytes).map("%02x".format(_)).mkString)
+      }
+      case None => None
+    }
+  }
 }
 
 case class MetainfoInfoSingleFile
 (
   pieceLength: Int,
   pieces: String,
-  privateTorrent: Boolean,
+  privateTorrent: Option[Boolean],
 
   /**
    * The filename. This is purely advisory.
@@ -49,13 +82,27 @@ case class MetainfoInfoSingleFile
    * for greater compatibility.
    */
   md5sum: Option[String]
-) extends MetainfoInfo
+
+) extends MetainfoInfo {
+
+  def toMap: Map[String,Any] = {
+    val map: mutable.Map[String,Any] = mutable.Map(
+      "piece length" -> pieceLength,
+      "pieces" -> pieces,
+      "name" -> name,
+      "length" -> length
+    )
+    if (privateTorrent.isDefined) map += ("private" -> privateTorrent.get)
+    if (md5sum.isDefined) map += ("md5sum" -> md5sum.get)
+    map.toMap
+  }
+}
 
 case class MetainfoInfoMultiFile
 (
   pieceLength: Int,
   pieces: String,
-  privateTorrent: Boolean,
+  privateTorrent: Option[Boolean],
 
   /**
    * The file path of the directory in which to store all the files. This is
@@ -64,7 +111,20 @@ case class MetainfoInfoMultiFile
   name: String,
 
   files: List[FileInfo]
-) extends MetainfoInfo
+
+) extends MetainfoInfo {
+
+  def toMap: Map[String,Any] = {
+    val map: mutable.Map[String,Any] = mutable.Map(
+      "piece length" -> pieceLength,
+      "pieces" -> pieces,
+      "name" -> name,
+      "files" -> files.map(_.toMap)
+    )
+    if (privateTorrent.isDefined) map += ("private" -> privateTorrent.get)
+    map.toMap
+  }
+}
 
 object MetainfoInfo {
 
@@ -74,8 +134,8 @@ object MetainfoInfo {
         pieceLength = info("piece length").asInstanceOf[Int],
         pieces = info("pieces").asInstanceOf[String],
         privateTorrent =
-          if (info.contains("private")) info("private").asInstanceOf[Int] == 1
-          else false,
+          if (info.contains("private")) Some(info("private").asInstanceOf[Int] == 1)
+          else None,
         name = info("name").asInstanceOf[String],
         length = info("length").asInstanceOf[Int],
         md5sum =
@@ -87,8 +147,8 @@ object MetainfoInfo {
         pieceLength = info("piece length").asInstanceOf[Int],
         pieces = info("pieces").asInstanceOf[String],
         privateTorrent =
-          if (info.contains("private")) info("private").asInstanceOf[Int] == 1
-          else false,
+          if (info.contains("private")) Some(info("private").asInstanceOf[Int] == 1)
+          else None,
         name = info("name").asInstanceOf[String],
         files = FileInfo.create(info("files").asInstanceOf[List[Map[String,Any]]])
       )

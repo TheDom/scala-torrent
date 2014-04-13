@@ -1,5 +1,8 @@
 package com.dominikgruber.scalatorrent.metainfo
 
+import com.dominikgruber.scalatorrent.bencode.BencodeEncoder
+import scala.collection.mutable
+
 /**
  * Descriptions taken from the specification:
  * https://wiki.theory.org/BitTorrentSpecification#Metainfo_File_Structure
@@ -24,19 +27,30 @@ case class FileInfo
    * directory name or (in the case of the final element) the filename.
    */
   path: List[String]
-)
+
+) {
+
+  /**
+   * Convert the content to a map conforming to the .torrent file standard
+   */
+  def toMap: Map[String,Any] = {
+    val map = mutable.Map("length" -> length, "path" -> path)
+    if (md5sum.isDefined) map += ("md5sum" -> md5sum.get)
+    map.toMap
+  }
+}
 
 object FileInfo {
 
-  def create(files: List[Map[String,Any]]): List[FileInfo] = {
-    files.map { file =>
-      FileInfo(
-        length = file("length").asInstanceOf[Int],
-        md5sum =
-          if (file.contains("md5sum")) Some(file("md5sum").asInstanceOf[String])
-          else None,
-        path = file("path").asInstanceOf[List[String]]
-      )
-    }
-  }
+  def create(files: List[Map[String,Any]]): List[FileInfo] =
+    files.map(f => create(f))
+
+  def create(file: Map[String,Any]): FileInfo =
+    FileInfo(
+      length = file("length").asInstanceOf[Int],
+      md5sum =
+        if (file.contains("md5sum")) Some(file("md5sum").asInstanceOf[String])
+        else None,
+      path = file("path").asInstanceOf[List[String]]
+    )
 }

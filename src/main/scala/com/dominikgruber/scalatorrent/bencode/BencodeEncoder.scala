@@ -28,7 +28,7 @@ object BencodeEncoder {
   def list(l: List[Any]): Option[String] = {
     @tailrec
     def inner(l: List[Any], acc: String): Option[String] = l match {
-      case head :: tail => apply(head) match {
+      case head :: tail => encode(head) match {
         case Some(x) => inner(tail, acc + x)
         case None => None
       }
@@ -43,7 +43,7 @@ object BencodeEncoder {
   def dictionary(m: Map[String,Any]): Option[String] = {
     @tailrec
     def inner(l: List[(String,Any)], acc: String): Option[String] = l match {
-      case (s, v) :: tail => (apply(s), apply(v)) match {
+      case (s, v) :: tail => (apply(s), encode(v)) match {
         case (Some(str1), Some(str2)) => inner(tail, acc + str1 + str2)
         case _ => None
       }
@@ -52,7 +52,7 @@ object BencodeEncoder {
     inner(m.toList.sortBy(_._1), "")
   }
 
-  def apply(input: Any): Option[String] = input match {
+  def encode(input: Any): Option[String] = input match {
     case s: String => string(s)
     case i: Int => Option(integer(i))
     case l: List[Any] => list(l)

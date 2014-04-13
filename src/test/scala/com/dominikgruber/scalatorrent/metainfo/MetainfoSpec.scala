@@ -8,9 +8,11 @@ class MetainfoSpec extends UnitSpec {
 
   "loadFromBencodedString" should "parse the Ubuntu demo torrent correctly" in {
     val source = Source.fromURL(getClass.getResource("/metainfo/ubuntu-12.04.4-server-amd64.iso.torrent"))
-    val in = Metainfo.loadFromBencodedString(source.mkString)
+    val sourceString = source.mkString
+    source.close()
+    val in = Metainfo.loadFromBencodedString(sourceString)
     val out = Metainfo(
-      MetainfoInfoSingleFile(524288, "demo", false, "ubuntu-12.04.4-server-amd64.iso", 711983104, None),
+      MetainfoInfoSingleFile(524288, "demo", None, "ubuntu-12.04.4-server-amd64.iso", 711983104, None),
       "http://torrent.ubuntu.com:6969/announce",
       Some(List(List("http://torrent.ubuntu.com:6969/announce"), List("http://ipv6.torrent.ubuntu.com:6969/announce"))),
       Some(new Date(1391706765000l)),
@@ -19,16 +21,21 @@ class MetainfoSpec extends UnitSpec {
       None
     )
     in should be (out)
+    out.bencodedString.get should be (sourceString)
+    out.info.SHA1.get should be ("363f99a148c0e9b2d299ea8e548cfdf18286e858")
   }
 
   it should "parse the Killers_from_space_archive demo torrent correctly" in {
     val source = Source.fromURL(getClass.getResource("/metainfo/Killers_from_space_archive.torrent"))
-    val in = Metainfo.loadFromBencodedString(source.mkString)
+    val sourceString = source.mkString
+    source.close()
+    val in = Metainfo.loadFromBencodedString(sourceString)
+    source.close()
     val out = Metainfo(
       MetainfoInfoMultiFile(
         2097152,
         "demo",
-        false,
+        None,
         "Killers_from_space",
         List(
           FileInfo(408587, None, List("Killers_from_space.gif")),
@@ -49,5 +56,9 @@ class MetainfoSpec extends UnitSpec {
       None
     )
     in should be (out)
+
+    // This test fails currently because the .torrent file contains non-standard
+    // entries in the info dictionary ("crc32", "md5", and "mtime")
+    // out.bencodedString.get should be (sourceString)
   }
 }
