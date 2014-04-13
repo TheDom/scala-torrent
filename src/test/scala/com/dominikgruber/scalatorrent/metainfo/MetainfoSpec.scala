@@ -12,7 +12,7 @@ class MetainfoSpec extends UnitSpec {
     source.close()
     val in = Metainfo.loadFromBencodedString(sourceString)
     val out = Metainfo(
-      MetainfoInfoSingleFile(524288, "demo", None, "ubuntu-12.04.4-server-amd64.iso", 711983104, None),
+      MetainfoInfoSingleFile("363f99a148c0e9b2d299ea8e548cfdf18286e858", 524288, "demo", None, "ubuntu-12.04.4-server-amd64.iso", 711983104, None),
       "http://torrent.ubuntu.com:6969/announce",
       Some(List(List("http://torrent.ubuntu.com:6969/announce"), List("http://ipv6.torrent.ubuntu.com:6969/announce"))),
       Some(new Date(1391706765000l)),
@@ -22,7 +22,6 @@ class MetainfoSpec extends UnitSpec {
     )
     in should be (out)
     out.bencodedString.get should be (sourceString)
-    out.info.SHA1.get should be ("363f99a148c0e9b2d299ea8e548cfdf18286e858")
   }
 
   it should "parse the Killers_from_space_archive demo torrent correctly" in {
@@ -33,6 +32,7 @@ class MetainfoSpec extends UnitSpec {
     source.close()
     val out = Metainfo(
       MetainfoInfoMultiFile(
+        "4c447c6039bb9c59e5c0ca1acd50ba642249e592",
         2097152,
         "demo",
         None,

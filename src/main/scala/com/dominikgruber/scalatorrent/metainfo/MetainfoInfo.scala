@@ -10,6 +10,12 @@ import scala.collection.mutable
 sealed trait MetainfoInfo
 {
   /**
+   * SHA1 value of the original bencoded values. It might include some
+   * non-standardized values which is why this is stored separately.
+   */
+  def SHA1: String
+
+  /**
    * Number of bytes in each piece.
    */
   def pieceLength: Int
@@ -45,23 +51,11 @@ sealed trait MetainfoInfo
    */
   def bencodedString: Option[String] =
     BencodeEncoder(toMap)
-
-  /**
-   * SHA1 value of the bencoded string
-   */
-  def SHA1: Option[String] = {
-    bencodedString match {
-      case Some(s: String) => {
-        val md = java.security.MessageDigest.getInstance("SHA-1")
-        Some(md.digest(s.getBytes).map("%02x".format(_)).mkString)
-      }
-      case None => None
-    }
-  }
 }
 
 case class MetainfoInfoSingleFile
 (
+  SHA1: String,
   pieceLength: Int,
   pieces: String,
   privateTorrent: Option[Boolean],
@@ -100,6 +94,7 @@ case class MetainfoInfoSingleFile
 
 case class MetainfoInfoMultiFile
 (
+  SHA1: String,
   pieceLength: Int,
   pieces: String,
   privateTorrent: Option[Boolean],
@@ -131,6 +126,7 @@ object MetainfoInfo {
   def create(info: Map[String,Any]): MetainfoInfo = {
     if (info.contains("length"))
       MetainfoInfoSingleFile(
+        SHA1 = SHA1FromMap(info).getOrElse(""),
         pieceLength = info("piece length").asInstanceOf[Int],
         pieces = info("pieces").asInstanceOf[String],
         privateTorrent =
@@ -144,6 +140,7 @@ object MetainfoInfo {
       )
     else if (info.contains("files"))
       MetainfoInfoMultiFile(
+        SHA1 = SHA1FromMap(info).getOrElse(""),
         pieceLength = info("piece length").asInstanceOf[Int],
         pieces = info("pieces").asInstanceOf[String],
         privateTorrent =
@@ -154,5 +151,15 @@ object MetainfoInfo {
       )
     else
       throw new IllegalArgumentException("Provided file is not a valid .torrent file.")
+  }
+
+  def SHA1FromMap(info: Map[String,Any]): Option[String] = {
+    BencodeEncoder(info) match {
+      case Some(s: String) => {
+        val md = java.security.MessageDigest.getInstance("SHA-1")
+        Some(md.digest(s.getBytes).map("%02x".format(_)).mkString)
+      }
+      case None => None
+    }
   }
 }
