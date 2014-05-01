@@ -13,7 +13,7 @@ sealed trait MetainfoInfo
    * SHA1 value of the original bencoded values. It might include some
    * non-standardized values which is why this is stored separately.
    */
-  def SHA1: String
+  def SHA1: Array[Byte]
 
   /**
    * Number of bytes in each piece.
@@ -51,11 +51,16 @@ sealed trait MetainfoInfo
    */
   def bencodedString: Option[String] =
     BencodeEncoder(toMap)
+
+  /**
+   * Returns the total amount of bytes
+   */
+  def totalBytes: Int
 }
 
 case class MetainfoInfoSingleFile
 (
-  SHA1: String,
+  SHA1: Array[Byte],
   pieceLength: Int,
   pieces: String,
   privateTorrent: Option[Boolean],
@@ -90,11 +95,13 @@ case class MetainfoInfoSingleFile
     if (md5sum.isDefined) map += ("md5sum" -> md5sum.get)
     map.toMap
   }
+
+  def totalBytes: Int = length
 }
 
 case class MetainfoInfoMultiFile
 (
-  SHA1: String,
+  SHA1: Array[Byte],
   pieceLength: Int,
   pieces: String,
   privateTorrent: Option[Boolean],
@@ -119,14 +126,16 @@ case class MetainfoInfoMultiFile
     if (privateTorrent.isDefined) map += ("private" -> privateTorrent.get)
     map.toMap
   }
+
+  def totalBytes: Int = files.map(_.length).sum
 }
 
 object MetainfoInfo {
 
-  def create(info: Map[String,Any]): MetainfoInfo = {
+  def create(info: Map[String,Any], SHA1: Array[Byte]): MetainfoInfo = {
     if (info.contains("length"))
       MetainfoInfoSingleFile(
-        SHA1 = SHA1FromMap(info).getOrElse(""),
+        SHA1 = SHA1,
         pieceLength = info("piece length").asInstanceOf[Int],
         pieces = info("pieces").asInstanceOf[String],
         privateTorrent =
@@ -140,7 +149,7 @@ object MetainfoInfo {
       )
     else if (info.contains("files"))
       MetainfoInfoMultiFile(
-        SHA1 = SHA1FromMap(info).getOrElse(""),
+        SHA1 = SHA1,
         pieceLength = info("piece length").asInstanceOf[Int],
         pieces = info("pieces").asInstanceOf[String],
         privateTorrent =
@@ -151,15 +160,5 @@ object MetainfoInfo {
       )
     else
       throw new IllegalArgumentException("Provided file is not a valid .torrent file.")
-  }
-
-  def SHA1FromMap(info: Map[String,Any]): Option[String] = {
-    BencodeEncoder(info) match {
-      case Some(s: String) => {
-        val md = java.security.MessageDigest.getInstance("SHA-1")
-        Some(md.digest(s.getBytes).map("%02x".format(_)).mkString)
-      }
-      case None => None
-    }
   }
 }

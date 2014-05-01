@@ -9,7 +9,7 @@ libraryDependencies ++= {
   Seq(
     "com.typesafe.akka"   %%  "akka-actor"        % akkaV,
     "com.typesafe.akka"   %%  "akka-testkit"      % akkaV,
-    "io.spray"            %   "spray-httpx"       % "1.3.1",
-    "org.scalatest"       %   "scalatest_2.10"    % "2.1.3" % "test"
+    "io.spray"            %   "spray-client"      % "1.3.1",
+    "org.scalatest"       %   "scalatest_2.10"    % "2.1.5" % "test"
   )
 }

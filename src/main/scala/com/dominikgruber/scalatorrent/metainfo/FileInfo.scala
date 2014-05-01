@@ -1,6 +1,5 @@
 package com.dominikgruber.scalatorrent.metainfo
 
-import com.dominikgruber.scalatorrent.bencode.BencodeEncoder
 import scala.collection.mutable
 
 /**

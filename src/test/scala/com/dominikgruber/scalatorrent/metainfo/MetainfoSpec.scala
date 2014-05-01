@@ -2,17 +2,23 @@ package com.dominikgruber.scalatorrent.metainfo
 
 import com.dominikgruber.scalatorrent.UnitSpec
 import java.util.Date
-import scala.io.Source
+import scala.io.{Codec, Source}
 
 class MetainfoSpec extends UnitSpec {
 
-  "loadFromBencodedString" should "parse the Ubuntu demo torrent correctly" in {
-    val source = Source.fromURL(getClass.getResource("/metainfo/ubuntu-12.04.4-server-amd64.iso.torrent"))
+  def loadTorrentFile(file: String): String = {
+    val source = Source.fromURL(getClass.getResource(file))(Codec.ISO8859)
     val sourceString = source.mkString
     source.close()
+    sourceString
+  }
+
+  "loadFromBencodedString" should "parse the Ubuntu demo torrent correctly" in {
+    val sourceString = loadTorrentFile("/metainfo/ubuntu-12.04.4-server-amd64.iso.torrent")
     val in = Metainfo.loadFromBencodedString(sourceString)
+    val inCmp = in.copy(info = in.info.asInstanceOf[MetainfoInfoSingleFile].copy(SHA1 = null))
     val out = Metainfo(
-      MetainfoInfoSingleFile("363f99a148c0e9b2d299ea8e548cfdf18286e858", 524288, "demo", None, "ubuntu-12.04.4-server-amd64.iso", 711983104, None),
+      MetainfoInfoSingleFile(null, 524288, "demo", None, "ubuntu-12.04.4-server-amd64.iso", 711983104, None),
       "http://torrent.ubuntu.com:6969/announce",
       Some(List(List("http://torrent.ubuntu.com:6969/announce"), List("http://ipv6.torrent.ubuntu.com:6969/announce"))),
       Some(new Date(1391706765000l)),
@@ -20,19 +26,17 @@ class MetainfoSpec extends UnitSpec {
       None,
       None
     )
-    in should be (out)
+    inCmp should be (out)
     out.bencodedString.get should be (sourceString)
   }
 
   it should "parse the Killers_from_space_archive demo torrent correctly" in {
-    val source = Source.fromURL(getClass.getResource("/metainfo/Killers_from_space_archive.torrent"))
-    val sourceString = source.mkString
-    source.close()
+    val sourceString = loadTorrentFile("/metainfo/Killers_from_space_archive.torrent")
     val in = Metainfo.loadFromBencodedString(sourceString)
-    source.close()
+    val inCmp = in.copy(info = in.info.asInstanceOf[MetainfoInfoMultiFile].copy(SHA1 = null))
     val out = Metainfo(
       MetainfoInfoMultiFile(
-        "4c447c6039bb9c59e5c0ca1acd50ba642249e592",
+        null,
         2097152,
         "demo",
         None,
@@ -55,10 +59,22 @@ class MetainfoSpec extends UnitSpec {
       Some("ia_make_torrent"),
       None
     )
-    in should be (out)
+    inCmp should be (out)
 
     // This test fails currently because the .torrent file contains non-standard
     // entries in the info dictionary ("crc32", "md5", and "mtime")
     // out.bencodedString.get should be (sourceString)
+  }
+
+  "getInfoValueFromBencodedString" should "detect the info value correctly" in {
+    val sourceString = loadTorrentFile("/metainfo/ubuntu-14.04-server-amd64.iso.torrent")
+    val infoValue = Metainfo.getInfoValueFromBencodedString(sourceString)
+    infoValue.substring(0, 1) should be ("d")
+    infoValue.substring(infoValue.length - 1) should be ("e")
+  }
+
+  "calculateInfoSHA1FromBencodedString" should "" in {
+    val sourceString = loadTorrentFile("/metainfo/ubuntu-14.04-server-amd64.iso.torrent")
+    Metainfo.calculateInfoSHA1FromBencodedString(sourceString).map("%02x".format(_)).mkString should be ("757b25d9681d493167b8d3759dbfddc983e80646")
   }
 }
