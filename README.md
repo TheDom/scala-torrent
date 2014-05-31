@@ -12,4 +12,4 @@ To make things more interesting, I do intend to only use at the specification of
 * https://wiki.theory.org/BitTorrentSpecification
 * http://www.bittorrent.org/beps/bep_0003.html
 
-As a general timeframe I am planning to finish the basic functionality by the end of May 2014. Depending on time and interest I will then decide if I am continuing with the project or not.
+As a general timeframe I am planning to finish the basic functionality by the end of July 2014. Depending on time and interest I will then decide if I am continuing with the project or not.
