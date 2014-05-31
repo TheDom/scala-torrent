@@ -93,6 +93,10 @@ object Metainfo {
   /**
    * This method assumes that the input string adheres to the bencode / .torrent
    * format which would make the info key the last one in the dictionary.
+   *
+   * Getting the string directly from the input is safer than piecing it back
+   * together from the parsed input since the original input might contain
+   * undocumented keys that are ignored by the parser.
    */
   def getInfoValueFromBencodedString(bencode: String): String =
     bencode.substring(bencode.lastIndexOf("4:info") + 6, bencode.length - 1)
