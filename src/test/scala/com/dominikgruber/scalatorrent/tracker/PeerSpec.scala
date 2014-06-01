@@ -4,17 +4,17 @@ import com.dominikgruber.scalatorrent.UnitSpec
 
 class PeerSpec extends UnitSpec {
 
-  "PeerSpec" should "should parse a single peer" in {
+  "Peer" should "parse a single peer" in {
     val str = Map("peer id" -> "-SC0001-123456789012", "ip" -> "10.0.0.1", "port" -> 65535)
     Peer.create(str) should be (Peer(Some("-SC0001-123456789012"), "10.0.0.1", 65535))
   }
 
-  it should "should parse a single peer with no peer id" in {
+  it should "parse a single peer with no peer id" in {
     val str = Map("ip" -> "www.dominikgruber.com", "port" -> 1)
     Peer.create(str) should be (Peer(None, "www.dominikgruber.com", 1))
   }
 
-  it should "should parse a list of peers" in {
+  it should "parse a list of peers" in {
     val list = List(Map("peer id" -> "-SC0001-123456789012", "ip" -> "10.0.0.1", "port" -> 65535), Map("ip" -> "www.dominikgruber.com", "port" -> 1))
     Peer.create(list) should be (List(Peer(Some("-SC0001-123456789012"), "10.0.0.1", 65535), Peer(None, "www.dominikgruber.com", 1)))
   }
