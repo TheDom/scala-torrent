@@ -48,7 +48,7 @@ object Handshake {
       if (pstr == "BitTorrent protocol") {
         val infoHash = message.slice(message.length - 40, message.length - 20)
         val peerId = new String(message.slice(message.length - 20, message.length).toArray, "ISO-8859-1")
-        Some(Handshake(infoHash, peerId))
+        return Some(Handshake(infoHash, peerId))
       }
     }
     None

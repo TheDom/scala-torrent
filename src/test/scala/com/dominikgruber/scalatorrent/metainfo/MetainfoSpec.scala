@@ -6,13 +6,6 @@ import scala.io.{Codec, Source}
 
 class MetainfoSpec extends UnitSpec {
 
-  def loadTorrentFile(file: String): String = {
-    val source = Source.fromURL(getClass.getResource(file))(Codec.ISO8859)
-    val sourceString = source.mkString
-    source.close()
-    sourceString
-  }
-
   "loadFromBencodedString" should "parse the Ubuntu demo torrent correctly" in {
     val sourceString = loadTorrentFile("/metainfo/ubuntu-12.04.4-server-amd64.iso.torrent")
     val in = Metainfo(sourceString)
