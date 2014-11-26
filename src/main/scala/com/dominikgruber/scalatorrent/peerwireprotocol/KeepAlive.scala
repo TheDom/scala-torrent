@@ -13,3 +13,11 @@ case class KeepAlive() extends Message {
   override def lengthPrefix = 0
   override def messageId = None
 }
+
+object KeepAlive {
+
+  def unmarshal(message: Vector[Byte]): Option[KeepAlive] = {
+    if (message == KeepAlive().marshal) Some(KeepAlive())
+    else None
+  }
+}

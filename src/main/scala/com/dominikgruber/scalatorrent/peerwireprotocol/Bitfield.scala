@@ -1,6 +1,7 @@
 package com.dominikgruber.scalatorrent.peerwireprotocol
 
 import akka.util.ByteStringBuilder
+import java.nio.ByteBuffer
 
 /**
  * bitfield: <len=0001+X><id=5><bitfield>
@@ -16,7 +17,7 @@ import akka.util.ByteStringBuilder
  */
 case class Bitfield(downloadedPieces: Vector[Boolean]) extends Message {
   override def lengthPrefix = 1 + byteVectorLength(downloadedPieces.length)
-  override def messageId = Some(5)
+  override def messageId = Some(Bitfield.MESSAGE_ID)
 
   override def marshal: Vector[Byte] = {
     val bsb = new ByteStringBuilder()
@@ -37,4 +38,29 @@ case class Bitfield(downloadedPieces: Vector[Boolean]) extends Message {
 
   private def byteVectorLength(booleanVectorLength: Int): Int =
     Math.ceil(booleanVectorLength / 8.0).toInt
+}
+
+object Bitfield {
+
+  val MESSAGE_ID: Byte = 5
+
+  def unmarshal(message: Vector[Byte]): Option[Bitfield] = {
+    if (message.length > 5 && message(4) == MESSAGE_ID) {
+      val l = ByteBuffer.wrap(message.slice(0, 4).toArray).getInt - 1
+      if (l + 5 == message.length) {
+        val downloadedPieces = message.drop(5).foldLeft((new Array[Boolean](l * 8), 0))((z, b) => {
+          var (a, i) = z
+
+          for (j <- 7 to 0 by -1) {
+            a(i) = (b & (1 << j)) > 0
+            i += 1
+          }
+
+          (a, i)
+        })._1.toVector
+        return Some(Bitfield(downloadedPieces))
+      }
+    }
+    None
+  }
 }

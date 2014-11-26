@@ -6,5 +6,15 @@ package com.dominikgruber.scalatorrent.peerwireprotocol
  */
 case class NotInterested() extends Message {
   override def lengthPrefix = 1
-  override def messageId = Some(3)
+  override def messageId = Some(NotInterested.MESSAGE_ID)
+}
+
+object NotInterested {
+
+  val MESSAGE_ID: Byte = 3
+
+  def unmarshal(message: Vector[Byte]): Option[NotInterested] = {
+    if (message == NotInterested().marshal) Some(NotInterested())
+    else None
+  }
 }

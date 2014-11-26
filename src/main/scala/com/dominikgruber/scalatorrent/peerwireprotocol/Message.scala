@@ -25,5 +25,21 @@ abstract class Message {
 
 object Message {
 
-  def unmarshal(message: Vector[Byte]): Option[Message] = ???
+  def unmarshal(message: Vector[Byte]): Option[Message] = {
+    if (message.length < 4) None
+    else if (message.length == 4) KeepAlive.unmarshal(message)
+    else {
+      val messageId = message(4)
+      if (messageId == Choke.MESSAGE_ID) Choke.unmarshal(message)
+      else if (messageId == Unchoke.MESSAGE_ID) Unchoke.unmarshal(message)
+      else if (messageId == Interested.MESSAGE_ID) Interested.unmarshal(message)
+      else if (messageId == NotInterested.MESSAGE_ID) NotInterested.unmarshal(message)
+      else if (messageId == Have.MESSAGE_ID) Have.unmarshal(message)
+      else if (messageId == Bitfield.MESSAGE_ID) Bitfield.unmarshal(message)
+      else if (messageId == Request.MESSAGE_ID) Request.unmarshal(message)
+      else if (messageId == Piece.MESSAGE_ID) Piece.unmarshal(message)
+      else if (messageId == Cancel.MESSAGE_ID) Cancel.unmarshal(message)
+      else None
+    }
+  }
 }

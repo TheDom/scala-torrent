@@ -6,5 +6,15 @@ package com.dominikgruber.scalatorrent.peerwireprotocol
  */
 case class Choke() extends Message {
   override def lengthPrefix = 1
-  override def messageId = Some(0)
+  override def messageId = Some(Choke.MESSAGE_ID)
+}
+
+object Choke {
+
+  val MESSAGE_ID: Byte = 0
+
+  def unmarshal(message: Vector[Byte]): Option[Choke] = {
+    if (message == Choke().marshal) Some(Choke())
+    else None
+  }
 }
