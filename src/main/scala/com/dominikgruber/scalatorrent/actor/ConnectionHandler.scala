@@ -21,7 +21,7 @@ class ConnectionHandler(endpoint: InetSocketAddress, internalPeerId: String) ext
   // Start listening to incoming connections
   IO(Tcp) ! Tcp.Bind(self, endpoint)
 
-  def receive: Receive = {
+  override def receive = {
     case CommandFailed(_: Bind) =>
       // TODO: Handle failure
 

@@ -40,7 +40,7 @@ class Coordinator extends Actor {
   val endpoint = new InetSocketAddress("localhost", portIn)
   val connectionHandler = context.actorOf(Props(classOf[ConnectionHandler], endpoint, peerId), "connection-handler")
 
-  def receive = {
+  override def receive = {
     case AddTorrentFile(file) =>
       try {
         val name = file.split('/').last.replace(".torrent", "")

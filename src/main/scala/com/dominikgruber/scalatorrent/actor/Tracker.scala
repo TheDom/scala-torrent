@@ -30,7 +30,7 @@ class Tracker(metainfo: Metainfo, peerId: String, portIn: Int) extends Actor {
   import Tracker._
   import TrackerEvent._
 
-  def receive: Receive = {
+  override def receive = {
     case SendEventStarted(dl, ul) => sendRequest(Started, dl, ul, sender())
     case SendEventStopped(dl, ul) => sendRequest(Stopped, dl, ul, sender())
     case SendEventCompleted(dl, ul) => sendRequest(Completed, dl, ul, sender())

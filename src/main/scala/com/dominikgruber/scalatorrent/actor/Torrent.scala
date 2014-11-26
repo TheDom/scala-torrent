@@ -26,7 +26,7 @@ class Torrent(name: String, metainfo: Metainfo, peerId: String, connectionHandle
   val tracker = context.actorOf(Props(classOf[Tracker], metainfo, peerId, portIn), "tracker")
   tracker ! SendEventStarted(0, 0)
 
-  def receive = started
+  override def receive = started
 
   def started: Receive = {
     case TrackerResponseReceived(res) => res match {

@@ -25,9 +25,9 @@ case class Handshake(infoHash: Vector[Byte], peerId: String) {
 
   def marshal: Vector[Byte] = {
     Vector.concat(
-      Vector(19.toByte),
+      Vector[Byte](19),
       "BitTorrent protocol".getBytes("ISO-8859-1"),
-      Vector[Byte](0, 0, 0, 0, 0, 0, 0, 0),
+      Vector.fill[Byte](8)(0),
       infoHash,
       peerId.getBytes("ISO-8859-1")
     )
@@ -43,7 +43,7 @@ object Handshake {
 
   def unmarshal(message: Vector[Byte]): Option[Handshake] = {
     if (message.length == 68) {
-      val pstrlen = message(0).toShort
+      val pstrlen = message(0)
       val pstr = new String(message.slice(1, 1 + pstrlen).toArray, "ISO-8859-1")
       if (pstr == "BitTorrent protocol") {
         val infoHash = message.slice(message.length - 40, message.length - 20)
