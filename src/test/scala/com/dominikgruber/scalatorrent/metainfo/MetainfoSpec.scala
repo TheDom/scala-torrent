@@ -15,8 +15,8 @@ class MetainfoSpec extends UnitSpec {
 
   "loadFromBencodedString" should "parse the Ubuntu demo torrent correctly" in {
     val sourceString = loadTorrentFile("/metainfo/ubuntu-12.04.4-server-amd64.iso.torrent")
-    val in = Metainfo.loadFromBencodedString(sourceString)
-    val inCmp = in.copy(info = in.info.asInstanceOf[MetainfoInfoSingleFile].copy(SHA1 = null))
+    val in = Metainfo(sourceString)
+    val inCmp = in.copy(info = in.info.asInstanceOf[MetainfoInfoSingleFile].copy(infoHash = null))
     val out = Metainfo(
       MetainfoInfoSingleFile(null, 524288, "demo", None, "ubuntu-12.04.4-server-amd64.iso", 711983104, None),
       "http://torrent.ubuntu.com:6969/announce",
@@ -32,8 +32,8 @@ class MetainfoSpec extends UnitSpec {
 
   it should "parse the Killers_from_space_archive demo torrent correctly" in {
     val sourceString = loadTorrentFile("/metainfo/Killers_from_space_archive.torrent")
-    val in = Metainfo.loadFromBencodedString(sourceString)
-    val inCmp = in.copy(info = in.info.asInstanceOf[MetainfoInfoMultiFile].copy(SHA1 = null))
+    val in = Metainfo(sourceString)
+    val inCmp = in.copy(info = in.info.asInstanceOf[MetainfoInfoMultiFile].copy(infoHash = null))
     val out = Metainfo(
       MetainfoInfoMultiFile(
         null,
@@ -73,8 +73,8 @@ class MetainfoSpec extends UnitSpec {
     infoValue.substring(infoValue.length - 1) should be ("e")
   }
 
-  "calculateInfoSHA1FromBencodedString" should "" in {
+  "calculateInfoHashFromBencodedString" should "" in {
     val sourceString = loadTorrentFile("/metainfo/ubuntu-14.04-server-amd64.iso.torrent")
-    Metainfo.calculateInfoSHA1FromBencodedString(sourceString).map("%02x".format(_)).mkString should be ("757b25d9681d493167b8d3759dbfddc983e80646")
+    Metainfo.calculateInfoHashFromBencodedString(sourceString).map("%02x".format(_)).mkString should be ("757b25d9681d493167b8d3759dbfddc983e80646")
   }
 }

@@ -13,7 +13,7 @@ sealed trait MetainfoInfo
    * SHA1 value of the original bencoded values. It might include some
    * non-standardized values which is why this is stored separately.
    */
-  def SHA1: Array[Byte]
+  def infoHash: Vector[Byte]
 
   /**
    * Number of bytes in each piece.
@@ -55,15 +55,20 @@ sealed trait MetainfoInfo
   /**
    * Returns the total amount of bytes
    */
-  def totalBytes: Int
+  def totalBytes: Long
+
+  /**
+   * Hex string representation of the SHA1 value
+   */
+  lazy val infoHashString: String = infoHash.map("%02X" format _).mkString
 }
 
 case class MetainfoInfoSingleFile
 (
-  SHA1: Array[Byte],
-  pieceLength: Int,
-  pieces: String,
-  privateTorrent: Option[Boolean],
+  override val infoHash: Vector[Byte],
+  override val pieceLength: Int,
+  override val pieces: String,
+  override val privateTorrent: Option[Boolean],
 
   /**
    * The filename. This is purely advisory.
@@ -96,15 +101,15 @@ case class MetainfoInfoSingleFile
     map.toMap
   }
 
-  def totalBytes: Int = length
+  override def totalBytes: Long = length
 }
 
 case class MetainfoInfoMultiFile
 (
-  SHA1: Array[Byte],
-  pieceLength: Int,
-  pieces: String,
-  privateTorrent: Option[Boolean],
+  override val infoHash: Vector[Byte],
+  override val pieceLength: Int,
+  override val pieces: String,
+  override val privateTorrent: Option[Boolean],
 
   /**
    * The file path of the directory in which to store all the files. This is
@@ -117,25 +122,25 @@ case class MetainfoInfoMultiFile
 ) extends MetainfoInfo {
 
   def toMap: Map[String,Any] = {
-    val map: mutable.Map[String,Any] = mutable.Map(
+    val map: Map[String,Any] = Map(
       "piece length" -> pieceLength,
       "pieces" -> pieces,
       "name" -> name,
       "files" -> files.map(_.toMap)
     )
-    if (privateTorrent.isDefined) map += ("private" -> privateTorrent.get)
-    map.toMap
+    if (privateTorrent.isDefined) map + ("private" -> privateTorrent.get)
+    else map
   }
 
-  def totalBytes: Int = files.map(_.length).sum
+  override def totalBytes: Long = files.map(_.length).sum
 }
 
 object MetainfoInfo {
 
-  def create(info: Map[String,Any], SHA1: Array[Byte]): MetainfoInfo = {
+  def apply(info: Map[String,Any], infoHash: Vector[Byte]): MetainfoInfo = {
     if (info.contains("length"))
       MetainfoInfoSingleFile(
-        SHA1 = SHA1,
+        infoHash = infoHash,
         pieceLength = info("piece length").asInstanceOf[Int],
         pieces = info("pieces").asInstanceOf[String],
         privateTorrent =
@@ -149,14 +154,14 @@ object MetainfoInfo {
       )
     else if (info.contains("files"))
       MetainfoInfoMultiFile(
-        SHA1 = SHA1,
+        infoHash = infoHash,
         pieceLength = info("piece length").asInstanceOf[Int],
         pieces = info("pieces").asInstanceOf[String],
         privateTorrent =
           if (info.contains("private")) Some(info("private").asInstanceOf[Int] == 1)
           else None,
         name = info("name").asInstanceOf[String],
-        files = FileInfo.create(info("files").asInstanceOf[List[Map[String,Any]]])
+        files = FileInfo(info("files").asInstanceOf[List[Map[String,Any]]])
       )
     else
       throw new IllegalArgumentException("Provided file is not a valid .torrent file.")

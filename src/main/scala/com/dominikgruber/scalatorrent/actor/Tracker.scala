@@ -13,9 +13,9 @@ import com.dominikgruber.scalatorrent.metainfo.Metainfo
 import com.dominikgruber.scalatorrent.tracker.TrackerResponse
 
 object Tracker {
-  case class SendEventStarted()
-  case class SendEventStopped()
-  case class SendEventCompleted()
+  case class SendEventStarted(downloaded: Long, uploaded: Long)
+  case class SendEventStopped(downloaded: Long, uploaded: Long)
+  case class SendEventCompleted(downloaded: Long, uploaded: Long)
 
   case class TrackerResponseReceived(res: TrackerResponse)
   case class TrackerConnectionFailed(msg: String)
@@ -26,34 +26,34 @@ object Tracker {
   }
 }
 
-class Tracker(metainfo: Metainfo, peerId: String) extends Actor {
+class Tracker(metainfo: Metainfo, peerId: String, portIn: Int) extends Actor {
   import Tracker._
   import TrackerEvent._
 
   def receive: Receive = {
-    case SendEventStarted => sendRequest(Started, sender())
-    case SendEventStopped => sendRequest(Stopped, sender())
-    case SendEventCompleted => sendRequest(Completed, sender())
+    case SendEventStarted(dl, ul) => sendRequest(Started, dl, ul, sender())
+    case SendEventStopped(dl, ul) => sendRequest(Stopped, dl, ul, sender())
+    case SendEventCompleted(dl, ul) => sendRequest(Completed, dl, ul, sender())
   }
 
-  private def sendRequest(event: TrackerEvent, requestor: ActorRef) = {
-    val paramsStr = getRequestParams(event).foldLeft("")((z, m) => z + "&" + m._1 + "=" + m._2).drop(1)
+  private def sendRequest(event: TrackerEvent, downloaded: Long, uploaded: Long, requestor: ActorRef) = {
+    // Build query manually so the encoding is properly handled
+    val paramsStr = getRequestParams(event, downloaded, uploaded).foldLeft("")((z, m) => z + "&" + m._1 + "=" + m._2).drop(1)
     val query = Query(paramsStr, Charset.forName("ISO-8859-1"), Uri.ParsingMode.RelaxedWithRawQuery)
     val uri = Uri(metainfo.announce).withQuery(query)
-    val req = Get(uri)
 
     val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
 
-    pipeline(req) onComplete {
+    pipeline(Get(uri)) onComplete {
       case Success(res: HttpResponse) =>
         val resString = res.entity.asString(HttpCharsets.`ISO-8859-1`)
-        requestor ! TrackerResponseReceived(TrackerResponse.create(resString))
+        requestor ! TrackerResponseReceived(TrackerResponse(resString))
       case Failure(error) =>
         requestor ! TrackerConnectionFailed(error.getMessage)
     }
   }
 
-  private def getRequestParams(event: TrackerEvent): Map[String,String] = {
+  private def getRequestParams(event: TrackerEvent, downloaded: Long, uploaded: Long): Map[String,String] = {
     val eventStr = event match {
       case Started => "started"
       case Stopped => "stopped"
@@ -63,7 +63,7 @@ class Tracker(metainfo: Metainfo, peerId: String) extends Actor {
       /**
        * 20-byte SHA1 hash of the value of the info key from the Metainfo file.
        */
-      "info_hash" -> URLEncoder.encode(new String(metainfo.info.SHA1, "ISO-8859-1"), "ISO-8859-1"),
+      "info_hash" -> URLEncoder.encode(new String(metainfo.info.infoHash.toArray, "ISO-8859-1"), "ISO-8859-1"),
 
       "peer_id" -> peerId,
 
@@ -72,7 +72,7 @@ class Tracker(metainfo: Metainfo, peerId: String) extends Actor {
        * BitTorrent are typically 6881-6889. Clients may choose to give up if it
        * cannot establish a port within this range.
        */
-      "port" -> "6881",
+      "port" -> portIn.toString,
 
       /**
        * The total amount uploaded (since the client sent the 'started' event to
@@ -80,7 +80,7 @@ class Tracker(metainfo: Metainfo, peerId: String) extends Actor {
        * official specification, the concensus is that this should be the total
        * number of bytes uploaded.
        */
-      "uploaded" -> "0",
+      "uploaded" -> uploaded.toString,
 
       /**
        * The total amount downloaded (since the client sent the 'started' event
@@ -88,14 +88,14 @@ class Tracker(metainfo: Metainfo, peerId: String) extends Actor {
        * official specification, the consensus is that this should be the total
        * number of bytes downloaded.
        */
-      "downloaded" -> "0",
+      "downloaded" -> downloaded.toString,
 
       /**
        * The number of bytes this client still has to download in base ten
        * ASCII. Clarification: The number of bytes needed to download to be 100%
        * complete and get all the included files in the torrent.
        */
-      "left" -> metainfo.info.totalBytes.toString,
+      "left" -> (metainfo.info.totalBytes - downloaded).toString,
 
       /**
        * Setting this to 1 indicates that the client accepts a compact response.

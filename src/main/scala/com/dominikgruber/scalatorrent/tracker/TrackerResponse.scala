@@ -17,7 +17,8 @@ case class TrackerResponseWithSuccess
   interval: Int,
 
   /**
-   * Minimum announce interval. If present clients must not reannounce more frequently than this.
+   * Minimum announce interval. If present clients must not reannounce more
+   * frequently than this.
    */
   minInterval: Option[Int],
 
@@ -58,13 +59,12 @@ case class TrackerResponseWithFailure
   reason: String
 ) extends TrackerResponse
 
-
 object TrackerResponse {
 
-  def create(response: String): TrackerResponse =
-    create(BencodeParser(response).get.asInstanceOf[Map[String,Any]])
+  def apply(response: String): TrackerResponse =
+    apply(BencodeParser(response).get.asInstanceOf[Map[String,Any]])
 
-  def create(response: Map[String,Any]): TrackerResponse = {
+  def apply(response: Map[String,Any]): TrackerResponse = {
     if (response.contains("failure reason"))
       TrackerResponseWithFailure(response("failure reason").asInstanceOf[String])
     else
@@ -82,9 +82,9 @@ object TrackerResponse {
         incomplete =
           if (response.contains("incomplete")) response("incomplete").asInstanceOf[Int]
           else 0,
-        peers = Peer.create(response("peers")),
+        peers = Peer.createList(response("peers")),
         warning =
-          if (response.contains("warning")) Some(response("warning").asInstanceOf[String])
+          if (response.contains("warning message")) Some(response("warning message").asInstanceOf[String])
           else None
       )
   }

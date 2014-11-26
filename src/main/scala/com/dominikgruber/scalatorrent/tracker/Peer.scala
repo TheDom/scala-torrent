@@ -1,7 +1,6 @@
 package com.dominikgruber.scalatorrent.tracker
 
-import java.net.InetAddress
-import java.nio.ByteBuffer
+import java.net.{InetSocketAddress, InetAddress}
 
 /**
  * Descriptions taken from the specification:
@@ -23,13 +22,25 @@ case class Peer
    * Peer's port number
    */
   port: Int
-)
+
+) {
+  lazy val inetSocketAddress = new InetSocketAddress(ip, port)
+}
 
 object Peer {
 
-  def create(peers: Any): List[Peer] = peers match {
-    case s: String => create(s)
-    case l: List[_] => create(l.asInstanceOf[List[Map[String, Any]]])
+  def apply(peer: Map[String,Any]): Peer =
+    Peer(
+      peerId =
+        if (peer.contains("peer id")) Some(peer("peer id").asInstanceOf[String])
+        else None,
+      ip = peer("ip").asInstanceOf[String],
+      port = peer("port").asInstanceOf[Int]
+    )
+
+  def createList(peers: Any): List[Peer] = peers match {
+    case s: String => createList(s)
+    case l: List[_] => createList(l.asInstanceOf[List[Map[String, Any]]])
     case _ => Nil
   }
 
@@ -38,8 +49,8 @@ object Peer {
    * consisting of multiples of 6 bytes. First 4 bytes are the IP address and
    * last 2 bytes are the port number. All in network (big endian) notation.
    */
-  def create(peers: String): List[Peer] = {
-    val (peerList, b) = peers.getBytes("ISO-8859-1").foldLeft((List[Peer](), Array[Byte]()))((z, byte) => {
+  def createList(peers: String): List[Peer] = {
+    val (peerList, _) = peers.getBytes("ISO-8859-1").foldLeft((List[Peer](), Array[Byte]()))((z, byte) => {
       if (z._2.length < 5) (z._1, z._2 :+ byte)
       else {
         val ip = InetAddress.getByAddress(z._2.take(4))
@@ -54,15 +65,6 @@ object Peer {
   /**
    * The value is a list of dictionaries.
    */
-  def create(peers: List[Map[String,Any]]): List[Peer] =
-    peers.map(p => create(p))
-
-  def create(peer: Map[String,Any]): Peer =
-    Peer(
-      peerId =
-        if (peer.contains("peer id")) Some(peer("peer id").asInstanceOf[String])
-        else None,
-      ip = peer("ip").asInstanceOf[String],
-      port = peer("port").asInstanceOf[Int]
-    )
+  def createList(peers: List[Map[String,Any]]): List[Peer] =
+    peers.map(p => apply(p))
 }

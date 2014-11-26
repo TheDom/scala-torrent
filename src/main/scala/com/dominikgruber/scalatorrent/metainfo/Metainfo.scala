@@ -1,6 +1,7 @@
 package com.dominikgruber.scalatorrent.metainfo
 
 import com.dominikgruber.scalatorrent.bencode.{BencodeEncoder, BencodeParser}
+import java.io.File
 import java.util.Date
 import scala.collection.mutable
 import scala.io.{Codec, Source}
@@ -77,17 +78,17 @@ case class Metainfo
 
 object Metainfo {
 
-  def loadFromFile(file: String): Metainfo = {
+  def apply(file: File): Metainfo = {
     val source = Source.fromFile(file)(Codec.ISO8859)
     val info = source.mkString
     source.close()
-    loadFromBencodedString(info)
+    apply(info)
   }
 
-  def loadFromBencodedString(bencode: String): Metainfo = {
+  def apply(bencode: String): Metainfo = {
     val info = BencodeParser(bencode).get.asInstanceOf[Map[String,Any]]
-    val infoSHA1 = calculateInfoSHA1FromBencodedString(bencode)
-    create(info, infoSHA1)
+    val infoHash = calculateInfoHashFromBencodedString(bencode)
+    apply(info, infoHash)
   }
 
   /**
@@ -101,15 +102,15 @@ object Metainfo {
   def getInfoValueFromBencodedString(bencode: String): String =
     bencode.substring(bencode.lastIndexOf("4:info") + 6, bencode.length - 1)
 
-  def calculateInfoSHA1FromBencodedString(bencode: String): Array[Byte] = {
+  def calculateInfoHashFromBencodedString(bencode: String): Vector[Byte] = {
     val infoValue = getInfoValueFromBencodedString(bencode)
     val md = java.security.MessageDigest.getInstance("SHA-1")
-    md.digest(infoValue.getBytes("ISO-8859-1"))
+    md.digest(infoValue.getBytes("ISO-8859-1")).toVector
   }
 
-  def create(info: Map[String,Any], infoSHA1: Array[Byte]): Metainfo = {
+  def apply(info: Map[String,Any], infoHash: Vector[Byte]): Metainfo = {
     Metainfo(
-      info = MetainfoInfo.create(info("info").asInstanceOf[Map[String,Any]], infoSHA1),
+      info = MetainfoInfo(info("info").asInstanceOf[Map[String,Any]], infoHash),
       announce = info("announce").asInstanceOf[String],
       announceList =
         if (info.contains("announce-list")) Some(info("announce-list").asInstanceOf[List[List[String]]])

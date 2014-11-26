@@ -1,7 +1,5 @@
 package com.dominikgruber.scalatorrent.metainfo
 
-import scala.collection.mutable
-
 /**
  * Descriptions taken from the specification:
  * https://wiki.theory.org/BitTorrentSpecification#Metainfo_File_Structure
@@ -33,18 +31,18 @@ case class FileInfo
    * Convert the content to a map conforming to the .torrent file standard
    */
   def toMap: Map[String,Any] = {
-    val map = mutable.Map("length" -> length, "path" -> path)
-    if (md5sum.isDefined) map += ("md5sum" -> md5sum.get)
-    map.toMap
+    val map = Map("length" -> length, "path" -> path)
+    if (md5sum.isDefined) map + ("md5sum" -> md5sum.get)
+    else map
   }
 }
 
 object FileInfo {
 
-  def create(files: List[Map[String,Any]]): List[FileInfo] =
-    files.map(f => create(f))
+  def apply(files: List[Map[String,Any]]): List[FileInfo] =
+    files.map(f => apply(f))
 
-  def create(file: Map[String,Any]): FileInfo =
+  def apply(file: Map[String,Any]): FileInfo =
     FileInfo(
       length = file("length").asInstanceOf[Int],
       md5sum =
