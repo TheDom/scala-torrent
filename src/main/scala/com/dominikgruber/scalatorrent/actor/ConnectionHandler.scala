@@ -36,9 +36,4 @@ class ConnectionHandler(endpoint: InetSocketAddress, internalPeerId: String) ext
 
   private def createPeerConnectionActor(remoteAddress: InetSocketAddress) =
     context.actorOf(Props(classOf[PeerConnection], remoteAddress, internalPeerId, coordinator), "peer-connection-" + remoteAddress.toString.replace("/", ""))
-
-  /**
-   * @return The port for connections
-   */
-  def port: Int = endpoint.getPort
 }
