@@ -16,25 +16,8 @@ object BencodeParser extends RegexParsers {
    * Note that there is no constant beginning delimiter, and no ending
    * delimiter.
    */
-  def string: Parser[String] = new Parser[String] {
-    def apply(in: Input) = {
-      val source = in.source
-      val offset = in.offset
-      val start = handleWhiteSpace(source, offset)
-      """(\d+):([\s\S]+)""".r findPrefixMatchOf source.subSequence(start, source.length) match {
-        case Some(matched) =>
-          val length = matched.group(1).toInt
-          if (length <= matched.group(2).length)
-            Success(
-              matched.group(2).substring(0, length),
-              in.drop(start + length.toString.length + 1 + length - offset)
-            )
-          else
-            Failure("Provided length is longer than the remaining input", in.drop(start - offset))
-        case None =>
-          Failure("Input is not a string", in.drop(start - offset))
-      }
-    }
+  def string: Parser[String] = ( """[1-9]\d*""".r <~ ":" ) into { count =>
+    repN(count.toInt, ".|\n".r) ^^ (_.mkString)
   }
 
   /**
