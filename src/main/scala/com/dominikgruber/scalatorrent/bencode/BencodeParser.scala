@@ -16,7 +16,7 @@ object BencodeParser extends RegexParsers {
    * Note that there is no constant beginning delimiter, and no ending
    * delimiter.
    */
-  def string: Parser[String] = ( """[1-9]\d*""".r <~ ":" ) into { count =>
+  def string: Parser[String] = ("""[1-9]\d*""".r <~ ":") into { count =>
     repN(count.toInt, ".|\n".r) ^^ (_.mkString)
   }
 

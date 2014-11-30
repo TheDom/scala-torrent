@@ -40,6 +40,14 @@ class BencodeParserSpec extends UnitSpec {
     assertParserFailure("3:spam", string)
   }
 
+  it should "fail on an invalid string input" in {
+    assertParserFailure(":abc", string)
+  }
+
+  it should "fail on an invalid string input (II)" in {
+    assertParserFailure(":", string)
+  }
+
   it should "detect an integer" in {
     assertParse("i3e", 3, integer)
   }
@@ -52,7 +60,7 @@ class BencodeParserSpec extends UnitSpec {
     assertParse("i-3e", -3, integer)
   }
 
-  it should "not allow zero padding for postive numbers" in {
+  it should "not allow zero padding for positive numbers" in {
     assertParserFailure("i04e", integer)
   }
 
