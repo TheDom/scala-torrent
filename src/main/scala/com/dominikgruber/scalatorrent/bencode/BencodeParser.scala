@@ -17,7 +17,7 @@ object BencodeParser extends RegexParsers {
    * delimiter.
    */
   def string: Parser[String] = ("""[1-9]\d*""".r <~ ":") into { count =>
-    repN(count.toInt, ".|\n".r) ^^ (_.mkString)
+    repN(count.toInt, "(?s).".r) ^^ (_.mkString)
   }
 
   /**
