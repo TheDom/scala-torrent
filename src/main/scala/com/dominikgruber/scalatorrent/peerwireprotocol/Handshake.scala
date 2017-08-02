@@ -41,16 +41,15 @@ case class Handshake(infoHash: Vector[Byte], peerId: String) {
 
 object Handshake {
 
-  def unmarshal(message: Vector[Byte]): Option[Handshake] = {
+  def parse(message: Vector[Byte]): Option[Handshake] = {
     if (message.length == 68) {
       val pstrlen = message(0)
       val pstr = new String(message.slice(1, 1 + pstrlen).toArray, "ISO-8859-1")
       if (pstr == "BitTorrent protocol") {
         val infoHash = message.slice(message.length - 40, message.length - 20)
         val peerId = new String(message.slice(message.length - 20, message.length).toArray, "ISO-8859-1")
-        return Some(Handshake(infoHash, peerId))
-      }
-    }
-    None
+        Some(Handshake(infoHash, peerId))
+      } else None
+    } else None
   }
 }

@@ -1,27 +1,24 @@
 package com.dominikgruber.scalatorrent.actor
 
-import akka.actor.{ActorRef, Actor}
+import akka.actor.{Actor, ActorRef}
 import akka.io.Tcp._
-import akka.io.{Tcp, IO}
+import akka.io.{IO, Tcp}
 import akka.util.ByteString
 import java.net.InetSocketAddress
 
-import com.dominikgruber.scalatorrent.metainfo.Metainfo
+import com.dominikgruber.scalatorrent.actor.Coordinator.{IdentifyTorrent, TorrentInfo}
+import com.dominikgruber.scalatorrent.actor.PeerConnection.{BeginConnection, PeerConnected, ReceiveConnection}
+import com.dominikgruber.scalatorrent.metainfo.MetaInfo
 import com.dominikgruber.scalatorrent.peerwireprotocol.Handshake
 
 object PeerConnection {
-  case class AttachToTorrent(torrent: ActorRef, metainfo: Metainfo)
-  case class SendHandshake()
+  case class BeginConnection(torrent: ActorRef, metaInfo: MetaInfo)
+  case class ReceiveConnection(tcpConnection: ActorRef)
+  case class PeerConnected(peerConnection: ActorRef)
 }
 
 class PeerConnection(remoteAddress: InetSocketAddress, internalPeerId: String, coordinator: ActorRef) extends Actor {
-  import PeerConnection._
-  import Coordinator._
-  import context.system
-
-  var connection: Option[ActorRef] = None
-  var torrent: Option[ActorRef] = None
-  var metainfo: Option[Metainfo] = None
+  import context._
 
   /**
    * Whether or not the remote peer has choked this client. When a peer chokes
@@ -41,66 +38,80 @@ class PeerConnection(remoteAddress: InetSocketAddress, internalPeerId: String, c
   var peerInterested = false
   var amInterested = false
 
-  override def receive: Receive = initialStage
+  override def receive: Receive = {
+    case BeginConnection(torrent, metaInfo) => // from Torrent
+      IO(Tcp) ! Connect(remoteAddress)
+      context become HandshakeSequence.Begin(metaInfo, torrent)
 
-  def initialStage: Receive = {
-    case AttachToTorrent(t, m) =>
-      torrent = Some(t)
-      metainfo = Some(m)
+    case ReceiveConnection(tcp) => // from Coordinator
+      context become HandshakeSequence.Respond(tcp)
+  }
 
-    case SendHandshake if torrent.isDefined =>
-      if (connection.isDefined) sendHandshake()
-      else {
-        IO(Tcp) ! Connect(remoteAddress)
-        context become awaitConnectionForHandshake
+  def connected(tcp: ActorRef, metaInfo: MetaInfo, torrent: ActorRef): Receive = {
+    case Received(data) => // from Tcp
+      // TODO: Handle failure
+
+    case PeerClosed => handlePeerClosed() // from Tcp
+  }
+
+  object HandshakeSequence {
+
+    object Begin {
+      def apply(metaInfo: MetaInfo, torrent: ActorRef) =
+        waitTcpConnection(metaInfo, torrent)
+
+      private def waitTcpConnection(metaInfo: MetaInfo, torrent: ActorRef): Receive = {
+        case Connected(_, _) => // from Tcp
+          sender ! Register(self)
+          sendHandshake(sender, metaInfo)
+          context become waitSecondHandshake(sender, metaInfo, torrent)
+
+        case CommandFailed(_: Connect) => // from Tcp // TODO: Handle failure
       }
 
-    case Received(data) => handleHandshakeIn(data)
-    case PeerClosed => handlePeerClosed()
-  }
+      private def waitSecondHandshake(tcp: ActorRef, metaInfo: MetaInfo, torrent: ActorRef): Receive = {
+        case Received(data) => // from Tcp
+          Handshake.parse(data.toVector) match {
+            case Some(handshake: Handshake) =>
+              //TODO validate handshake
+              torrent ! PeerConnected(self)
+              context become connected(tcp, metaInfo, torrent)
+            case None => // TODO: Handle failure
+          }
+        case PeerClosed => handlePeerClosed() // from Tcp
+      }
 
-  def awaitConnectionForHandshake: Receive = {
-    case c @ Connected(_, _) =>
-      connection = Some(context.sender())
-      connection.get ! Register(self)
-      sendHandshake()
-      context become awaitHandshakeIn
-
-    case CommandFailed(_: Connect) =>
-      // TODO: Handle failure
-  }
-
-  def awaitHandshakeIn: Receive = {
-    case Received(data) => handleHandshakeIn(data)
-    case PeerClosed => handlePeerClosed()
-  }
-
-  def connected: Receive = {
-    case Received(data) =>
-      // TODO: Handle failure
-
-    case PeerClosed => handlePeerClosed()
-  }
-
-  def handleHandshakeIn(data: ByteString) = {
-    Handshake.unmarshal(data.toVector) match {
-      case Some(handshake: Handshake) =>
-        connection = Some(context.sender())
-        if (torrent.isDefined) context become connected
-        else coordinator ! IncomingPeerConnection(self, handshake)
-
-      case None =>
-        // TODO: Handle failure
     }
+
+    object Respond {
+      def apply(tcp: ActorRef) = waitFirstHandshake(tcp)
+
+      private def waitFirstHandshake(tcp: ActorRef): Receive = {
+        case Received(data) => // from Tcp
+          Handshake.parse(data.toVector) match {
+            case Some(handshake: Handshake) =>
+              coordinator ! IdentifyTorrent(handshake.infoHashString)
+              context become waitTorrentInfo(tcp)
+            case None => // TODO: Handle failure
+          }
+        case PeerClosed => handlePeerClosed() // from Tcp
+      }
+
+      private def waitTorrentInfo(tcp: ActorRef): Receive = {
+        case TorrentInfo(metaInfo, torrent) => // from Coordinator
+          sendHandshake(tcp, metaInfo)
+          torrent ! PeerConnected(self)
+          context become connected(tcp, metaInfo, torrent)
+      }
+    }
+
+    private def sendHandshake(tcp: ActorRef, metaInfo: MetaInfo) = {
+      val handshake = Handshake(metaInfo.fileInfo.infoHash, internalPeerId)
+      tcp ! Write(ByteString(handshake.marshal.toArray))
+    }
+
   }
 
-  def sendHandshake() = {
-    val handshake = Handshake(metainfo.get.info.infoHash, internalPeerId)
-    connection.get ! Write(ByteString(handshake.marshal.toArray))
-  }
+  private def handlePeerClosed() = () // TODO context stop self
 
-  def handlePeerClosed() = {
-    // TODO
-    // context stop self
-  }
 }
