@@ -61,6 +61,8 @@ sealed trait FileMetaInfo
    * Hex string representation of the SHA1 value
    */
   lazy val infoHashString: String = infoHash.map("%02X" format _).mkString
+
+  val numPieces: Int = (totalBytes/pieceLength).toInt
 }
 
 case class SingleFileMetaInfo

@@ -57,7 +57,7 @@ class Coordinator extends Actor {
 
     case CreatePeerConnection(peer, metaInfo) => // from Torrent
       val peerConnection = createPeerConnectionActor(peer.inetSocketAddress)
-      peerConnection ! BeginConnection(self, metaInfo)
+      peerConnection ! BeginConnection(sender, metaInfo)
 
     case IdentifyTorrent(infoHash) => // from PeerConnection
       torrents.get(infoHash) match {
@@ -79,8 +79,9 @@ class Coordinator extends Actor {
     try {
       val name = file.split('/').last.replace(".torrent", "")
       val metaInfo = MetaInfo(new File(file))
-      val torrent = context.actorOf(Props(classOf[Torrent], name, metaInfo, peerId, self, portIn), "torrent-" + metaInfo.fileInfo.infoHashString)
-      torrents(metaInfo.fileInfo.infoHashString) = (torrent, metaInfo)
+      val torrentProps = Props(classOf[Torrent], name, metaInfo, peerId, self, portIn)
+      val torrentActor = context.actorOf(torrentProps, "torrent-" + metaInfo.fileInfo.infoHashString)
+      torrents(metaInfo.fileInfo.infoHashString) = (torrentActor, metaInfo)
       sender ! TorrentAddedSuccessfully(file)
     } catch {
       case e: Exception => sender ! TorrentFileInvalid(file, e.getMessage)

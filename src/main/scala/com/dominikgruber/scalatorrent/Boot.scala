@@ -69,7 +69,8 @@ object Boot extends App {
   def quit() = {
     println("Shutting down scala-torrent...")
     // TODO: Notify coordinator and wait for ACK (connections need to be properly closed)
-    system.shutdown()
-    System.exit(0)
+    system.terminate().onComplete {
+      _ => System.exit(0)
+    }
   }
 }

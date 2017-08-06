@@ -14,7 +14,7 @@ class HandshakeSpec extends UnitSpec {
   }
 
   "unmarshal" should "work with the example torrent" in {
-    Handshake.parse(exampleMarshaledHandshake) should be (Some(Handshake(exampleMetainfo.fileInfo.infoHash, peerId)))
+    Handshake.unmarshall(exampleMarshaledHandshake) should be (Some(Handshake(exampleMetainfo.fileInfo.infoHash, peerId)))
   }
 
   def exampleMetainfo: MetaInfo = {

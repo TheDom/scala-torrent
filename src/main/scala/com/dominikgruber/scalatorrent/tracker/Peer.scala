@@ -1,6 +1,6 @@
 package com.dominikgruber.scalatorrent.tracker
 
-import java.net.{InetSocketAddress, InetAddress}
+import java.net.{InetAddress, InetSocketAddress}
 
 /**
  * Descriptions taken from the specification:
