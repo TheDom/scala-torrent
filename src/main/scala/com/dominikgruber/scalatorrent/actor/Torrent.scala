@@ -2,7 +2,7 @@ package com.dominikgruber.scalatorrent.actor
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import com.dominikgruber.scalatorrent.actor.Coordinator.CreatePeerConnection
-import com.dominikgruber.scalatorrent.actor.PeerConnection.Send
+import com.dominikgruber.scalatorrent.actor.PeerSharing.SendToPeer
 import com.dominikgruber.scalatorrent.actor.Torrent.{AreWeInterested, BlockSize, NextRequest, ReceivedPiece}
 import com.dominikgruber.scalatorrent.actor.Tracker.{SendEventStarted, TrackerConnectionFailed, TrackerResponseReceived}
 import com.dominikgruber.scalatorrent.metainfo.MetaInfo
@@ -62,7 +62,7 @@ class Torrent(name: String, metaInfo: MetaInfo, peerId: String, coordinator: Act
   def sharing: Receive = {
     case AreWeInterested(piecesAvailable) => // from PeerConnection
       if(transferStatus.isAnyPieceNew(piecesAvailable))
-        sender ! Send(Interested())
+        sender ! SendToPeer(Interested())
     case NextRequest(piecesAvailable) => // from PeerConnection
       requestNewBlock(piecesAvailable, sender) //TODO begin with 5 requests
     case ReceivedPiece(piece, piecesAvailable) => // from PeerConnection
@@ -75,7 +75,7 @@ class Torrent(name: String, metaInfo: MetaInfo, peerId: String, coordinator: Act
   def requestNewBlock(piecesAvailable: BitSet, peerConnection: ActorRef): Unit =
     transferStatus.pickNewBlock(piecesAvailable) match {
       case Some(request) =>
-        peerConnection ! Send(request)
+        peerConnection ! SendToPeer(request)
       case None => //TODO fully downloaded
     }
 

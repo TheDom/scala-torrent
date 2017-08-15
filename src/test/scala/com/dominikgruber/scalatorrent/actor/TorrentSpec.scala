@@ -1,26 +1,22 @@
 package com.dominikgruber.scalatorrent.actor
 
-import akka.actor.{ActorRef, ActorSystem, Props}
-import akka.testkit.{ImplicitSender, TestKit}
+import akka.actor.{ActorRef, Props}
 import com.dominikgruber.scalatorrent.actor.Coordinator.CreatePeerConnection
-import com.dominikgruber.scalatorrent.actor.PeerConnection.Send
+import com.dominikgruber.scalatorrent.actor.PeerSharing.SendToPeer
 import com.dominikgruber.scalatorrent.actor.Torrent.{AreWeInterested, BlockSize, NextRequest, ReceivedPiece}
 import com.dominikgruber.scalatorrent.actor.Tracker.{SendEventStarted, TrackerResponseReceived}
 import com.dominikgruber.scalatorrent.metainfo.MetaInfo
 import com.dominikgruber.scalatorrent.peerwireprotocol.{Interested, Piece, Request}
 import com.dominikgruber.scalatorrent.tracker.{Peer, TrackerResponseWithSuccess}
-import com.dominikgruber.scalatorrent.util.Stub
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+import com.dominikgruber.scalatorrent.util.{ActorSpec, Mocks}
 
 import scala.collection.BitSet
 
-class TorrentSpec extends TestKit(ActorSystem())
-  with ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll with MockitoSugar {
+class TorrentSpec extends ActorSpec {
 
   "A Torrent actor" must {
 
-    val meta: MetaInfo = Stub.metaInfo(
+    val meta: MetaInfo = Mocks.metaInfo(
       totalLength = 6 * BlockSize,
       pieceLength = 2 * BlockSize)
     val torrent: ActorRef = {
@@ -55,7 +51,7 @@ class TorrentSpec extends TestKit(ActorSystem())
     "send Interested when a peer has new pieces" in {
       torrent ! AreWeInterested(BitSet(0))
       expectMsgPF() {
-        case Send(Interested()) =>
+        case SendToPeer(Interested()) =>
       }
     }
 
@@ -102,17 +98,13 @@ class TorrentSpec extends TestKit(ActorSystem())
 
       def expectRequest: Unit = {
         val request = expectMsgPF() {
-          case Send(r: Request) => r
+          case SendToPeer(r: Request) => r
         }
         ObservedRequests.received = ObservedRequests.received :+ request
       }
     }
 
     lazy val allAvailable = BitSet(0, 1, 2)
-  }
-
-  override def afterAll {
-    TestKit.shutdownActorSystem(system)
   }
 
 }

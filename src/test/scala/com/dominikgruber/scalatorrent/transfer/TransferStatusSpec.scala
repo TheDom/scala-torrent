@@ -1,9 +1,9 @@
 package com.dominikgruber.scalatorrent.transfer
 
-import com.dominikgruber.scalatorrent.metainfo.MetaInfo
-import com.dominikgruber.scalatorrent.util.{Stub, UnitSpec}
 import com.dominikgruber.scalatorrent.actor.Torrent.BlockSize
+import com.dominikgruber.scalatorrent.metainfo.MetaInfo
 import com.dominikgruber.scalatorrent.peerwireprotocol.Request
+import com.dominikgruber.scalatorrent.util.{Mocks, UnitSpec}
 import org.scalatest.PrivateMethodTester
 
 import scala.collection.{BitSet, mutable}
@@ -82,7 +82,7 @@ class TransferStatusSpec extends UnitSpec with PrivateMethodTester {
     state.pickNewBlock(allAvailable) shouldBe None
   }
 
-  val meta: MetaInfo = Stub.metaInfo(
+  val meta: MetaInfo = Mocks.metaInfo(
     totalLength = 6 * BlockSize,
     pieceLength = 2 * BlockSize)
   val allAvailable = BitSet(0, 1, 2)

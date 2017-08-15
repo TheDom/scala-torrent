@@ -7,7 +7,7 @@ import akka.actor.{Actor, ActorRef, Props}
 import akka.io.Tcp.{Bind, CommandFailed, Connected, Register}
 import akka.io.{IO, Tcp}
 import com.dominikgruber.scalatorrent.actor.Coordinator._
-import com.dominikgruber.scalatorrent.actor.PeerConnection.{BeginConnection, ReceiveConnection}
+import com.dominikgruber.scalatorrent.actor.PeerHandshaking.{BeginConnection, ReceiveConnection}
 import com.dominikgruber.scalatorrent.metainfo.MetaInfo
 import com.dominikgruber.scalatorrent.tracker.Peer
 import com.typesafe.config.{Config, ConfigFactory}
@@ -56,8 +56,8 @@ class Coordinator extends Actor {
       addTorrentFile(file)
 
     case CreatePeerConnection(peer, metaInfo) => // from Torrent
-      val peerConnection = createPeerConnectionActor(peer.inetSocketAddress)
-      peerConnection ! BeginConnection(sender, metaInfo)
+      val peerActor = createPeerActor(peer.inetSocketAddress)
+      peerActor ! BeginConnection(sender, metaInfo)
 
     case IdentifyTorrent(infoHash) => // from PeerConnection
       torrents.get(infoHash) match {
@@ -67,7 +67,7 @@ class Coordinator extends Actor {
       }
 
     case Connected(remoteAddress, _) => // from Tcp
-      val peerConnection = createPeerConnectionActor(remoteAddress)
+      val peerConnection = createPeerActor(remoteAddress)
       peerConnection ! ReceiveConnection(sender)
       sender ! Register(peerConnection)
 
@@ -88,9 +88,9 @@ class Coordinator extends Actor {
     }
   }
 
-  private def createPeerConnectionActor(remoteAddress: InetSocketAddress): ActorRef = {
+  private def createPeerActor(remoteAddress: InetSocketAddress): ActorRef = {
     val addressStr = remoteAddress.toString.replace("/", "")
     val name = s"peer-connection-$addressStr"
-    context.actorOf(Props(classOf[PeerConnection], remoteAddress, peerId, self), name)
+    context.actorOf(Props(classOf[PeerActor], remoteAddress, peerId, self), name)
   }
 }
