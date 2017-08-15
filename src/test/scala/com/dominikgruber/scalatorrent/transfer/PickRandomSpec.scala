@@ -1,7 +1,7 @@
 package com.dominikgruber.scalatorrent.transfer
 
-import com.dominikgruber.scalatorrent.UnitSpec
 import com.dominikgruber.scalatorrent.transfer.PickRandom._
+import com.dominikgruber.scalatorrent.util.UnitSpec
 
 class PickRandomSpec extends UnitSpec {
 

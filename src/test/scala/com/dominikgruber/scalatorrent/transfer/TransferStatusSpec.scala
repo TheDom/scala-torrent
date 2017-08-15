@@ -1,8 +1,7 @@
 package com.dominikgruber.scalatorrent.transfer
 
-import com.dominikgruber.scalatorrent.UnitSpec
 import com.dominikgruber.scalatorrent.metainfo.MetaInfo
-import com.dominikgruber.scalatorrent.util.Stub
+import com.dominikgruber.scalatorrent.util.{Stub, UnitSpec}
 import com.dominikgruber.scalatorrent.actor.Torrent.BlockSize
 import com.dominikgruber.scalatorrent.peerwireprotocol.Request
 import org.scalatest.PrivateMethodTester

@@ -1,7 +1,9 @@
 package com.dominikgruber.scalatorrent.metainfo
 
-import com.dominikgruber.scalatorrent.UnitSpec
 import java.util.Date
+
+import com.dominikgruber.scalatorrent.util.UnitSpec
+
 import scala.io.{Codec, Source}
 
 class MetaInfoSpec extends UnitSpec {
