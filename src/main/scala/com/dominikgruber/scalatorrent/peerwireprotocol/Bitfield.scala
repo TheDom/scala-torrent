@@ -1,7 +1,8 @@
 package com.dominikgruber.scalatorrent.peerwireprotocol
 
-import akka.util.ByteStringBuilder
 import java.nio.ByteBuffer
+
+import akka.util.ByteStringBuilder
 
 /**
  * bitfield: <len=0001+X><id=5><bitfield>
@@ -38,6 +39,8 @@ case class Bitfield(downloadedPieces: Vector[Boolean]) extends Message {
 
   private def byteVectorLength(booleanVectorLength: Int): Int =
     Math.ceil(booleanVectorLength / 8.0).toInt
+
+  override def toString: String = s"BitField(...)"
 }
 
 object Bitfield {

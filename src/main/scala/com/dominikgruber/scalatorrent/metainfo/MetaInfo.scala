@@ -10,14 +10,14 @@ import scala.io.{Codec, Source}
  * Descriptions taken from the specification:
  * https://wiki.theory.org/BitTorrentSpecification#Metainfo_File_Structure
  */
-case class Metainfo
+case class MetaInfo
 (
   /**
    * A dictionary that describes the file(s) of the torrent. There are two
    * possible forms: one for the case of a 'single-file' torrent with no
    * directory structure, and one for the case of a 'multi-file' torrent.
    */
-  info: MetainfoInfo,
+  fileInfo: FileMetaInfo,
 
   /**
    * The announce URL of the tracker
@@ -58,7 +58,7 @@ case class Metainfo
    */
   def toMap: Map[String,Any] = {
     val map: mutable.Map[String,Any] = mutable.Map(
-      "info" -> info.toMap,
+      "info" -> fileInfo.toMap,
       "announce" -> announce
     )
     if (announceList.isDefined) map += ("announce-list" -> announceList.get)
@@ -76,16 +76,16 @@ case class Metainfo
     BencodeEncoder(toMap)
 }
 
-object Metainfo {
+object MetaInfo {
 
-  def apply(file: File): Metainfo = {
+  def apply(file: File): MetaInfo = {
     val source = Source.fromFile(file)(Codec.ISO8859)
     val info = source.mkString
     source.close()
     apply(info)
   }
 
-  def apply(bencode: String): Metainfo = {
+  def apply(bencode: String): MetaInfo = {
     val info = BencodeParser(bencode).get.asInstanceOf[Map[String,Any]]
     val infoHash = calculateInfoHashFromBencodedString(bencode)
     apply(info, infoHash)
@@ -108,9 +108,9 @@ object Metainfo {
     md.digest(infoValue.getBytes("ISO-8859-1")).toVector
   }
 
-  def apply(info: Map[String,Any], infoHash: Vector[Byte]): Metainfo = {
-    Metainfo(
-      info = MetainfoInfo(info("info").asInstanceOf[Map[String,Any]], infoHash),
+  def apply(info: Map[String,Any], infoHash: Vector[Byte]): MetaInfo = {
+    MetaInfo(
+      fileInfo = FileMetaInfo(info("info").asInstanceOf[Map[String,Any]], infoHash),
       announce = info("announce").asInstanceOf[String],
       announceList =
         if (info.contains("announce-list")) Some(info("announce-list").asInstanceOf[List[List[String]]])

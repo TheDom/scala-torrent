@@ -1,6 +1,6 @@
 package com.dominikgruber.scalatorrent.tracker
 
-import com.dominikgruber.scalatorrent.UnitSpec
+import com.dominikgruber.scalatorrent.util.UnitSpec
 
 class PeerSpec extends UnitSpec {
 

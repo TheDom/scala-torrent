@@ -1,0 +1,4 @@
+
+- once peer is identified, set PeerConnection's parent to Torrent instead of Coordinator
+- accept Handshakes with extra bytes
+- replace charset strings with StandardCharsets

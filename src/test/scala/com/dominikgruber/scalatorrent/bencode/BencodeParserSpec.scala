@@ -1,6 +1,6 @@
 package com.dominikgruber.scalatorrent.bencode
 
-import com.dominikgruber.scalatorrent.UnitSpec
+import com.dominikgruber.scalatorrent.util.UnitSpec
 
 class BencodeParserSpec extends UnitSpec {
 

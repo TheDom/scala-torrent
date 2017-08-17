@@ -1,6 +1,6 @@
 package com.dominikgruber.scalatorrent.peerwireprotocol
 
-import com.dominikgruber.scalatorrent.UnitSpec
+import com.dominikgruber.scalatorrent.util.UnitSpec
 
 class KeepAliveSpec extends UnitSpec {
 

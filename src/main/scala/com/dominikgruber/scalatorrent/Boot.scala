@@ -27,7 +27,8 @@ object Boot extends App {
   val coordinator = system.actorOf(Props(classOf[Coordinator]), "coordinator")
 
   // TMP
-  addTorrentFile("/Users/dom/Dropbox/Private/Projects/scala-torrent/src/test/resources/metainfo/ubuntu-14.04.1-server-amd64.iso.torrent")
+  addTorrentFile("/Users/victorbasso/Downloads/ubuntu-12.04.5-desktop-amd64.iso.torrent")
+//  addTorrentFile("/Users/victorbasso/Downloads/no_checksums.torrent")
   // TMP
 
   // Listen for commands
@@ -68,7 +69,8 @@ object Boot extends App {
   def quit() = {
     println("Shutting down scala-torrent...")
     // TODO: Notify coordinator and wait for ACK (connections need to be properly closed)
-    system.shutdown()
-    System.exit(0)
+    system.terminate().onComplete {
+      _ => System.exit(0)
+    }
   }
 }

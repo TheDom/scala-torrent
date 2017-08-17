@@ -23,6 +23,8 @@ case class Piece(index: Int, begin: Int, block: Vector[Byte]) extends Message {
     bsb.putBytes(block.toArray)
     bsb.result().toVector
   }
+
+  override def toString: String = s"Piece(...)"
 }
 
 object Piece {

@@ -23,7 +23,7 @@ package com.dominikgruber.scalatorrent.peerwireprotocol
  */
 case class Handshake(infoHash: Vector[Byte], peerId: String) {
 
-  def marshal: Vector[Byte] = {
+  def marshal: Vector[Byte] =
     Vector.concat(
       Vector[Byte](19),
       "BitTorrent protocol".getBytes("ISO-8859-1"),
@@ -31,7 +31,6 @@ case class Handshake(infoHash: Vector[Byte], peerId: String) {
       infoHash,
       peerId.getBytes("ISO-8859-1")
     )
-  }
 
   /**
    * Hex string representation of the SHA1 value
@@ -40,17 +39,16 @@ case class Handshake(infoHash: Vector[Byte], peerId: String) {
 }
 
 object Handshake {
-
-  def unmarshal(message: Vector[Byte]): Option[Handshake] = {
-    if (message.length == 68) {
+  def unmarshall(message: Vector[Byte]): Option[Handshake] = {
+    val len = message.length
+    if (len == 68) { //TODO accept protocol extensions
       val pstrlen = message(0)
-      val pstr = new String(message.slice(1, 1 + pstrlen).toArray, "ISO-8859-1")
+      val pstr = new String(message.slice(1, 1 + pstrlen).toArray, "ISO-8859-1") //TODO replace with StandardCharsets
       if (pstr == "BitTorrent protocol") {
-        val infoHash = message.slice(message.length - 40, message.length - 20)
-        val peerId = new String(message.slice(message.length - 20, message.length).toArray, "ISO-8859-1")
-        return Some(Handshake(infoHash, peerId))
-      }
-    }
-    None
+        val infoHash = message.slice(len - 40, len - 20)
+        val peerId = new String(message.slice(len - 20, len).toArray, "ISO-8859-1")
+        Some(Handshake(infoHash, peerId))
+      } else None
+    } else None
   }
 }

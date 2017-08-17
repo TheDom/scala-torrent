@@ -7,7 +7,7 @@ import scala.collection.mutable
  * Descriptions taken from the specification:
  * https://wiki.theory.org/BitTorrentSpecification#Metainfo_File_Structure
  */
-sealed trait MetainfoInfo
+sealed trait FileMetaInfo
 {
   /**
    * SHA1 value of the original bencoded values. It might include some
@@ -61,9 +61,11 @@ sealed trait MetainfoInfo
    * Hex string representation of the SHA1 value
    */
   lazy val infoHashString: String = infoHash.map("%02X" format _).mkString
+
+  val numPieces: Int = (totalBytes/pieceLength).toInt
 }
 
-case class MetainfoInfoSingleFile
+case class SingleFileMetaInfo
 (
   override val infoHash: Vector[Byte],
   override val pieceLength: Int,
@@ -87,7 +89,7 @@ case class MetainfoInfoSingleFile
    */
   md5sum: Option[String]
 
-) extends MetainfoInfo {
+) extends FileMetaInfo {
 
   def toMap: Map[String,Any] = {
     val map: mutable.Map[String,Any] = mutable.Map(
@@ -104,7 +106,7 @@ case class MetainfoInfoSingleFile
   override def totalBytes: Long = length
 }
 
-case class MetainfoInfoMultiFile
+case class MultiFileMetaInfo
 (
   override val infoHash: Vector[Byte],
   override val pieceLength: Int,
@@ -119,7 +121,7 @@ case class MetainfoInfoMultiFile
 
   files: List[FileInfo]
 
-) extends MetainfoInfo {
+) extends FileMetaInfo {
 
   def toMap: Map[String,Any] = {
     val map: Map[String,Any] = Map(
@@ -135,11 +137,11 @@ case class MetainfoInfoMultiFile
   override def totalBytes: Long = files.map(_.length).sum
 }
 
-object MetainfoInfo {
+object FileMetaInfo {
 
-  def apply(info: Map[String,Any], infoHash: Vector[Byte]): MetainfoInfo = {
+  def apply(info: Map[String,Any], infoHash: Vector[Byte]): FileMetaInfo = {
     if (info.contains("length"))
-      MetainfoInfoSingleFile(
+      SingleFileMetaInfo(
         infoHash = infoHash,
         pieceLength = info("piece length").asInstanceOf[Int],
         pieces = info("pieces").asInstanceOf[String],
@@ -153,7 +155,7 @@ object MetainfoInfo {
           else None
       )
     else if (info.contains("files"))
-      MetainfoInfoMultiFile(
+      MultiFileMetaInfo(
         infoHash = infoHash,
         pieceLength = info("piece length").asInstanceOf[Int],
         pieces = info("pieces").asInstanceOf[String],

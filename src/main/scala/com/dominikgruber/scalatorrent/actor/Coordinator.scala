@@ -1,25 +1,32 @@
 package com.dominikgruber.scalatorrent.actor
 
-import akka.actor.{ActorRef, Props, Actor}
-import com.dominikgruber.scalatorrent.metainfo.Metainfo
-import com.dominikgruber.scalatorrent.peerwireprotocol.Handshake
-import com.typesafe.config.ConfigFactory
 import java.io.File
 import java.net.InetSocketAddress
+
+import akka.actor.{Actor, ActorRef, Props}
+import akka.io.Tcp.{Bind, CommandFailed, Connected, Register}
+import akka.io.{IO, Tcp}
+import com.dominikgruber.scalatorrent.actor.Coordinator._
+import com.dominikgruber.scalatorrent.actor.PeerHandshaking.{BeginConnection, ReceiveConnection}
+import com.dominikgruber.scalatorrent.metainfo.MetaInfo
+import com.dominikgruber.scalatorrent.tracker.Peer
+import com.typesafe.config.{Config, ConfigFactory}
+
 import scala.collection.mutable
-import util.Random
+import scala.util.Random
 
 object Coordinator {
   case class AddTorrentFile(file: String)
   case class TorrentAddedSuccessfully(file: String)
   case class TorrentFileInvalid(file: String, message: String)
-
-  case class IncomingPeerConnection(peerConnection: ActorRef, handshake: Handshake)
+  case class IdentifyTorrent(infoHash: String)
+  case class CreatePeerConnection(peer: Peer, metaInfo: MetaInfo)
+  case class TorrentInfo(metaInfo: MetaInfo, torrent: ActorRef)
 }
 
 class Coordinator extends Actor {
-  import Coordinator._
-  import Torrent.{IncomingPeerConnection => TorrentIncomingPeerConnection}
+
+  import context.system
 
   /**
    * 20-byte string used as a unique ID for the client.
@@ -29,31 +36,61 @@ class Coordinator extends Actor {
    *
    * @todo Generate once and persist
    */
-  lazy val peerId = "-SC0001-" + (100000 + Random.nextInt(899999)) + (100000 + Random.nextInt(899999))
+  lazy val peerId: String = {
+    def rand = 100000 + Random.nextInt(899999)
+    s"-SC0001-$rand$rand"
+  }
 
-  val conf = ConfigFactory.load.getConfig("scala-torrent")
-  val torrentActors = mutable.Map.empty[String,ActorRef]
-  val torrentMetainfos = mutable.Map.empty[String,Metainfo]
+  val conf: Config = ConfigFactory.load.getConfig("scala-torrent")
+  val torrents = mutable.Map.empty[String,(ActorRef, MetaInfo)]
 
   // Start actor to handle incoming connections
-  val portIn = conf.getInt("port")
+  val portIn: Int = conf.getInt("port")
   val endpoint = new InetSocketAddress("localhost", portIn)
-  val connectionHandler = context.actorOf(Props(classOf[ConnectionHandler], endpoint, peerId), "connection-handler")
 
-  override def receive = {
-    case AddTorrentFile(file) =>
-      try {
-        val name = file.split('/').last.replace(".torrent", "")
-        val metainfo = Metainfo(new File(file))
-        val torrent = context.actorOf(Props(classOf[Torrent], name, metainfo, peerId, connectionHandler, portIn), "torrent-" + metainfo.info.infoHashString)
-        torrentActors(metainfo.info.infoHashString) = torrent
-        torrentMetainfos(metainfo.info.infoHashString) = metainfo
-        sender ! TorrentAddedSuccessfully(file)
-      } catch {
-        case e: Exception => sender ! TorrentFileInvalid(file, e.getMessage)
+  // Start listening to incoming connections
+  IO(Tcp) ! Tcp.Bind(self, endpoint)
+
+  override def receive: Receive = {
+    case AddTorrentFile(file) => // from Boot
+      addTorrentFile(file)
+
+    case CreatePeerConnection(peer, metaInfo) => // from Torrent
+      val peerActor = createPeerActor(peer.inetSocketAddress)
+      peerActor ! BeginConnection(sender, metaInfo)
+
+    case IdentifyTorrent(infoHash) => // from PeerConnection
+      torrents.get(infoHash) match {
+        case Some((torrent, metaInfo)) =>
+          sender ! TorrentInfo(metaInfo, torrent)
+        case None => //TODO handle not found
       }
 
-    case IncomingPeerConnection(peerConnection, handshake) if torrentActors.isDefinedAt(handshake.infoHashString) =>
-      torrentActors(handshake.infoHashString) ! TorrentIncomingPeerConnection(peerConnection)
+    case Connected(remoteAddress, _) => // from Tcp
+      val peerConnection = createPeerActor(remoteAddress)
+      peerConnection ! ReceiveConnection(sender)
+      sender ! Register(peerConnection)
+
+    case CommandFailed(_: Bind) => // from Tcp
+      // TODO: Handle failure
+  }
+
+  private def addTorrentFile(file: String): Unit = {
+    try {
+      val name = file.split('/').last.replace(".torrent", "")
+      val metaInfo = MetaInfo(new File(file))
+      val torrentProps = Props(classOf[Torrent], name, metaInfo, peerId, self, portIn)
+      val torrentActor = context.actorOf(torrentProps, "torrent-" + metaInfo.fileInfo.infoHashString)
+      torrents(metaInfo.fileInfo.infoHashString) = (torrentActor, metaInfo)
+      sender ! TorrentAddedSuccessfully(file)
+    } catch {
+      case e: Exception => sender ! TorrentFileInvalid(file, e.getMessage)
+    }
+  }
+
+  private def createPeerActor(remoteAddress: InetSocketAddress): ActorRef = {
+    val addressStr = remoteAddress.toString.replace("/", "")
+    val name = s"peer-connection-$addressStr"
+    context.actorOf(Props(classOf[PeerActor], remoteAddress, peerId, self), name)
   }
 }

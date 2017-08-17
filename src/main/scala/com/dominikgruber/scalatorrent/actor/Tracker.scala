@@ -9,7 +9,7 @@ import scala.concurrent.Future
 import spray.http.{HttpCharsets, HttpRequest, HttpResponse, Uri}
 import spray.http.Uri.Query
 import scala.util.{Failure, Success}
-import com.dominikgruber.scalatorrent.metainfo.Metainfo
+import com.dominikgruber.scalatorrent.metainfo.MetaInfo
 import com.dominikgruber.scalatorrent.tracker.TrackerResponse
 
 object Tracker {
@@ -26,14 +26,17 @@ object Tracker {
   }
 }
 
-class Tracker(metainfo: Metainfo, peerId: String, portIn: Int) extends Actor {
+class Tracker(metainfo: MetaInfo, peerId: String, portIn: Int) extends Actor {
   import Tracker._
   import TrackerEvent._
 
   override def receive = {
-    case SendEventStarted(dl, ul) => sendRequest(Started, dl, ul, sender())
-    case SendEventStopped(dl, ul) => sendRequest(Stopped, dl, ul, sender())
-    case SendEventCompleted(dl, ul) => sendRequest(Completed, dl, ul, sender())
+    case SendEventStarted(dl, ul) => // from Torrent
+      sendRequest(Started, dl, ul, sender())
+    case SendEventStopped(dl, ul) => // from ???
+      sendRequest(Stopped, dl, ul, sender())
+    case SendEventCompleted(dl, ul) => // from ???
+      sendRequest(Completed, dl, ul, sender())
   }
 
   private def sendRequest(event: TrackerEvent, downloaded: Long, uploaded: Long, requestor: ActorRef) = {
@@ -63,7 +66,7 @@ class Tracker(metainfo: Metainfo, peerId: String, portIn: Int) extends Actor {
       /**
        * 20-byte SHA1 hash of the value of the info key from the Metainfo file.
        */
-      "info_hash" -> URLEncoder.encode(new String(metainfo.info.infoHash.toArray, "ISO-8859-1"), "ISO-8859-1"),
+      "info_hash" -> URLEncoder.encode(new String(metainfo.fileInfo.infoHash.toArray, "ISO-8859-1"), "ISO-8859-1"),
 
       "peer_id" -> peerId,
 
@@ -95,7 +98,7 @@ class Tracker(metainfo: Metainfo, peerId: String, portIn: Int) extends Actor {
        * ASCII. Clarification: The number of bytes needed to download to be 100%
        * complete and get all the included files in the torrent.
        */
-      "left" -> (metainfo.info.totalBytes - downloaded).toString,
+      "left" -> (metainfo.fileInfo.totalBytes - downloaded).toString,
 
       /**
        * Setting this to 1 indicates that the client accepts a compact response.

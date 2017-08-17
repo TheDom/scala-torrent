@@ -1,0 +1,10 @@
+
+#official
+www.bittorrent.org
+www.bittorrent.org/beps/bep_0003.html
+
+#more
+wiki.theory.org/index.php/BitTorrentSpecification
+https://stackoverflow.com/questions/990677/implementing-bittorrent-protocol
+jonas.nitro.dk/bittorrent/bittorrent-rfc.html
+http://www.kristenwidman.com/blog/71/how-to-write-a-bittorrent-client-part-2/
